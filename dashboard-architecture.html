@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas Copco CT — Data Readiness Power BI Dashboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #F3F2F1; }
+
+.pbi-shell { background: #F3F2F1; min-height: 100vh; }
+.pbi-nav { background: #1a1a2e; height: 40px; display: flex; align-items: center; padding: 0 14px; gap: 10px; }
+.pbi-logo { display: flex; align-items: center; gap: 6px; }
+.pbi-logo-sq { width: 20px; height: 20px; background: #F2C811; display: flex; align-items: center; justify-content: center; }
+.pbi-logo-sq svg { width: 13px; height: 13px; }
+.pbi-logo-text { font-size: 11px; color: #fff; font-weight: 500; letter-spacing: 0.3px; }
+.pbi-sep { width: 1px; height: 18px; background: rgba(255,255,255,0.15); }
+.pbi-breadcrumb { font-size: 11px; color: rgba(255,255,255,0.65); }
+.pbi-breadcrumb span { color: rgba(255,255,255,0.9); }
+.pbi-nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.pbi-refresh { font-size: 10px; color: rgba(255,255,255,0.5); }
+.pbi-user { width: 24px; height: 24px; border-radius: 50%; background: #0099CC; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: #fff; }
+
+.pbi-toolbar { background: #fff; border-bottom: 1px solid #E1DFDD; padding: 0 14px; height: 36px; display: flex; align-items: center; gap: 6px; }
+.pbi-filter-label { font-size: 10px; color: #605E5C; font-weight: 500; }
+.pbi-filter { font-size: 10px; padding: 3px 10px; border: 1px solid #C8C6C4; background: #fff; color: #323130; cursor: pointer; border-radius: 2px; }
+.pbi-filter.active { background: #0099CC; border-color: #0099CC; color: #fff; }
+.pbi-filter:hover:not(.active) { background: #F3F2F1; }
+.pbi-ysep { width: 1px; height: 18px; background: #E1DFDD; margin: 0 4px; }
+.pbi-refresh-btn { font-size: 10px; padding: 3px 10px; border: 1px solid #C8C6C4; background: #fff; color: #323130; cursor: pointer; border-radius: 2px; margin-left: auto; }
+
+.pbi-canvas { padding: 12px 14px; }
+
+.pbi-title-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.pbi-page-title { font-size: 16px; font-weight: 600; color: #323130; }
+.pbi-page-sub { font-size: 10px; color: #605E5C; margin-top: 2px; }
+.pbi-last-updated { font-size: 10px; color: #605E5C; text-align: right; }
+
+.pbi-legend { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+.pbi-legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #605E5C; }
+.pbi-legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+.kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 10px; }
+.kpi-card { background: #fff; border: 1px solid #E1DFDD; padding: 10px 12px; border-radius: 2px; border-top: 3px solid #0099CC; cursor: pointer; }
+.kpi-card.warn { border-top-color: #E08700; }
+.kpi-card.bad { border-top-color: #C42B1C; }
+.kpi-card.good { border-top-color: #107C10; }
+.kpi-card.neutral { border-top-color: #6264A7; }
+.kpi-lbl { font-size: 9px; color: #605E5C; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+.kpi-val { font-size: 20px; font-weight: 600; color: #323130; line-height: 1.1; }
+.kpi-val.bad { color: #C42B1C; }
+.kpi-val.warn { color: #8A4500; }
+.kpi-val.good { color: #107C10; }
+.kpi-trend { font-size: 9px; margin-top: 3px; color: #605E5C; }
+.kpi-trend.up { color: #107C10; }
+.kpi-trend.dn { color: #C42B1C; }
+
+.main-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.main-row-3 { display: grid; grid-template-columns: 1.4fr 1fr 0.9fr; gap: 8px; margin-bottom: 8px; }
+.pbi-panel { background: #fff; border: 1px solid #E1DFDD; border-radius: 2px; padding: 10px 12px; }
+.pbi-panel-title { font-size: 10px; font-weight: 600; color: #323130; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
+.pbi-panel-sub { font-size: 9px; color: #605E5C; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+.pc-table { width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed; }
+.pc-table thead tr { background: #F3F2F1; }
+.pc-table th { padding: 5px 7px; text-align: left; color: #605E5C; font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; border-bottom: 1px solid #E1DFDD; }
+.pc-table td { padding: 5px 7px; border-bottom: 1px solid #F3F2F1; color: #323130; vertical-align: middle; }
+.pc-table tr:hover td { background: #F3F2F1; cursor: pointer; }
+.pc-table tr.selected td { background: #E5F5FB; }
+
+.mat-dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+.score-pill { display: inline-block; padding: 2px 7px; border-radius: 2px; font-size: 9px; font-weight: 600; }
+.sp-good { background: #DFF6DD; color: #107C10; }
+.sp-mid  { background: #FFF4CE; color: #8A4500; }
+.sp-bad  { background: #FDE7E9; color: #C42B1C; }
+
+.use-case-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.uc-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: #F3F2F1; border-radius: 2px; }
+.uc-sev { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.uc-name { font-size: 9px; color: #323130; flex: 1; }
+.uc-count { font-size: 9px; font-weight: 600; color: #323130; }
+
+.detail-card { background: #F3F2F1; padding: 7px 8px; border-radius: 2px; }
+.detail-card-label { font-size: 9px; color: #605E5C; margin-bottom: 3px; }
+.detail-card-val { font-size: 13px; font-weight: 600; color: #323130; }
+
+.pc-selected-banner { background: #E5F5FB; border: 1px solid #0099CC; border-radius: 2px; padding: 7px 10px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+.pc-banner-name { font-size: 12px; font-weight: 600; color: #006E9B; }
+.pc-banner-meta { font-size: 10px; color: #006E9B; }
+.pc-banner-clear { font-size: 10px; color: #006E9B; cursor: pointer; text-decoration: underline; }
+
+.pbi-footer { background: #fff; border-top: 1px solid #E1DFDD; padding: 6px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+.pbi-footer-text { font-size: 9px; color: #A19F9D; }
+.pbi-footer-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.pbi-action-btn { font-size: 9px; padding: 4px 10px; border: 1px solid #C8C6C4; background: #fff; color: #323130; cursor: pointer; border-radius: 2px; }
+.pbi-action-btn:hover { background: #F3F2F1; }
+.pbi-action-btn.primary { background: #0099CC; border-color: #0099CC; color: #fff; }
+
+@media (max-width: 800px) {
+  .kpi-row { grid-template-columns: repeat(3,1fr); }
+  .main-row, .main-row-3 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="pbi-shell">
+
+  <div class="pbi-nav">
+    <div class="pbi-logo">
+      <div class="pbi-logo-sq">
+        <svg viewBox="0 0 13 13" fill="none"><rect x="0" y="0" width="6" height="6" fill="#1a1a2e"/><rect x="7" y="0" width="6" height="6" fill="#1a1a2e"/><rect x="0" y="7" width="6" height="6" fill="#1a1a2e"/><rect x="7" y="7" width="6" height="6" fill="#fff"/></svg>
+      </div>
+      <span class="pbi-logo-text">Power BI</span>
+    </div>
+    <div class="pbi-sep"></div>
+    <span class="pbi-breadcrumb">CT Data Readiness &nbsp;/&nbsp; <span>GEMS Migration Quality</span></span>
+    <div class="pbi-nav-right">
+      <span class="pbi-refresh">Last refresh: 06:00 CET · March 2026</span>
+      <div class="pbi-user">GV</div>
+    </div>
+  </div>
+
+  <div class="pbi-toolbar">
+    <span class="pbi-filter-label">ERP Status:</span>
+    <button class="pbi-filter active" onclick="filterMaturity('all',this)">All PCs</button>
+    <button class="pbi-filter" onclick="filterMaturity('orange',this)" style="background:#E6700020;border-color:#E67000;color:#7A3800;">PLM Only</button>
+    <button class="pbi-filter" onclick="filterMaturity('lightgreen',this)" style="background:#C6E8C620;border-color:#107C10;color:#0A4A0A;">BPCS linked</button>
+    <button class="pbi-filter" onclick="filterMaturity('darkgreen',this)" style="background:#00442020;border-color:#004420;color:#004420;">GEMS ready</button>
+    <div class="pbi-ysep"></div>
+    <span class="pbi-filter-label">Division:</span>
+    <select class="pbi-filter" style="padding:2px 6px;" onchange="filterDivision(this.value)">
+      <option value="all">All divisions</option>
+      <option value="CT Service">CT Service</option>
+      <option value="Industrial Air">Industrial Air</option>
+      <option value="Oil-Free Air">Oil-Free Air</option>
+      <option value="Gas & Process">Gas &amp; Process</option>
+      <option value="Medical Gas">Medical Gas</option>
+      <option value="Airtec">Airtec</option>
+    </select>
+    <button class="pbi-refresh-btn" onclick="location.reload()">&#8635; Refresh</button>
+  </div>
+
+  <div class="pbi-canvas">
+    <div class="pbi-title-row">
+      <div>
+        <div class="pbi-page-title">CT Data Readiness — GEMS Migration Quality</div>
+        <div class="pbi-page-sub">3DEXPERIENCE (Enovia) · Databricks · 9 use-case checks · All product companies · Compressor Technique</div>
+      </div>
+      <div class="pbi-last-updated">Data source: Databricks Gold layer<br>Refreshed: 06:00 CET daily</div>
+    </div>
+
+    <div class="pbi-legend">
+      <span style="font-size:10px;color:#605E5C;font-weight:600;">Maturity:</span>
+      <div class="pbi-legend-item"><div class="pbi-legend-dot" style="background:#E67000;"></div>PLM only (orange)</div>
+      <div class="pbi-legend-item"><div class="pbi-legend-dot" style="background:#54B454;"></div>BPCS linked (light green)</div>
+      <div class="pbi-legend-item"><div class="pbi-legend-dot" style="background:#004420;"></div>GEMS ready (dark green)</div>
+      <div class="pbi-ysep"></div>
+      <span style="font-size:10px;color:#605E5C;font-weight:600;">Severity:</span>
+      <div class="pbi-legend-item"><div class="pbi-legend-dot" style="background:#C42B1C;"></div>Critical (blocks GEMS)</div>
+      <div class="pbi-legend-item"><div class="pbi-legend-dot" style="background:#E08700;"></div>Warning</div>
+      <div class="pbi-legend-item"><div class="pbi-legend-dot" style="background:#0099CC;"></div>Info</div>
+    </div>
+
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <div id="pcBanner" style="display:none;" class="pc-selected-banner">
+      <div>
+        <div class="pc-banner-name" id="bannerName"></div>
+        <div class="pc-banner-meta" id="bannerMeta"></div>
+      </div>
+      <span class="pc-banner-clear" onclick="clearSelection()">Clear selection ×</span>
+    </div>
+
+    <div class="main-row">
+      <div class="pbi-panel">
+        <div class="pbi-panel-title">Product company — GEMS readiness overview <span class="pbi-panel-sub">Click row to drill down</span></div>
+        <div style="overflow-x:auto;">
+          <table class="pc-table" id="pcTable">
+            <thead><tr>
+              <th style="width:28px;"></th>
+              <th style="width:110px;">Product company</th>
+              <th style="width:65px;">Division</th>
+              <th style="width:55px;">GEMS score</th>
+              <th style="width:60px;">Parts total</th>
+              <th style="width:52px;">Missing attr</th>
+              <th style="width:48px;">Duplicates</th>
+              <th style="width:48px;">BOM errors</th>
+              <th style="width:55px;">ERP status</th>
+            </tr></thead>
+            <tbody id="pcTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pbi-panel">
+        <div class="pbi-panel-title">GEMS readiness score — all product companies</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;font-size:9px;color:#605E5C;">
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:1px;background:#107C10;display:inline-block;"></span>Ready ≥80%</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:1px;background:#F5A800;display:inline-block;"></span>In progress 60–79%</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:1px;background:#C42B1C;display:inline-block;"></span>At risk &lt;60%</span>
+        </div>
+        <div style="position:relative;width:100%;height:240px;"><canvas id="scoreChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="main-row-3">
+      <div class="pbi-panel">
+        <div class="pbi-panel-title">Use-case quality checks — issue count by PC <span class="pbi-panel-sub" id="ucPanelSub">All PCs</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;font-size:9px;color:#605E5C;">
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:1px;background:#C42B1C;display:inline-block;"></span>UC3 Missing ERP attrs</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:1px;background:#E08700;display:inline-block;"></span>UC5 Duplicate Lead EIN</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:1px;background:#F2C811;display:inline-block;"></span>UC1/2 Recursive BOM</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:1px;background:#0099CC;display:inline-block;"></span>UC4/8 UOM issues</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:9px;height:9px;border-radius:1px;background:#6264A7;display:inline-block;"></span>Other</span>
+        </div>
+        <div style="position:relative;width:100%;height:210px;"><canvas id="ucChart"></canvas></div>
+      </div>
+
+      <div class="pbi-panel">
+        <div class="pbi-panel-title">Issue severity breakdown</div>
+        <div style="display:flex;justify-content:center;margin-bottom:8px;">
+          <div style="position:relative;width:140px;height:140px;"><canvas id="sevChart"></canvas></div>
+        </div>
+        <div id="sevLegend" style="font-size:10px;color:#323130;"></div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #E1DFDD;">
+          <div style="font-size:9px;font-weight:600;color:#323130;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px;">Top critical use cases</div>
+          <div class="use-case-grid" id="ucGrid"></div>
+        </div>
+      </div>
+
+      <div class="pbi-panel">
+        <div class="pbi-panel-title">Attribute completeness — top gaps</div>
+        <div id="attrBars" style="margin-bottom:10px;"></div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #E1DFDD;">
+          <div style="font-size:9px;font-weight:600;color:#323130;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;">Migration scope</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;" id="scopeCards"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-row" style="margin-bottom:4px;">
+      <div class="pbi-panel">
+        <div class="pbi-panel-title">BOM health — flagged records by product company <span class="pbi-panel-sub">UC1/2: Recursive · UC qty-zero · UC non-physical</span></div>
+        <div style="position:relative;width:100%;height:160px;"><canvas id="bomChart"></canvas></div>
+      </div>
+      <div class="pbi-panel">
+        <div class="pbi-panel-title">Weekly GEMS readiness trend — CT overall</div>
+        <div style="position:relative;width:100%;height:160px;"><canvas id="trendChart"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="pbi-footer">
+    <div class="pbi-footer-text">Atlas Copco · Compressor Technique · PLM Data Readiness · Source: 3DEXPERIENCE via Databricks · PM-20 Programme · © 2026</div>
+    <div class="pbi-footer-btns">
+      <button class="pbi-action-btn" onclick="alert('Export to PDF — connect to Power BI Service to enable')">Export PDF</button>
+      <button class="pbi-action-btn" onclick="alert('Share report — connect to Power BI Service to enable')">Share</button>
+      <button class="pbi-action-btn primary">Open in Power BI Service</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const MAT = { orange:'#E67000', lightgreen:'#54B454', darkgreen:'#004420' };
+
+const PCS = [
+  {id:'UTF', name:'UTF',      div:'CT Service',    maturity:'darkgreen',  score:84, parts:28400, missing:4.2, dupes:0.6, bomErr:1240,  uc3:420, uc5:38,  uc12:85,  uc48:120, uc_oth:58,  attrs:[88,92,76,82,95,70,61]},
+  {id:'NLY', name:'NLY',      div:'CT Service',    maturity:'darkgreen',  score:81, parts:22100, missing:5.1, dupes:0.8, bomErr:980,   uc3:380, uc5:44,  uc12:72,  uc48:98,  uc_oth:42,  attrs:[86,90,72,79,93,66,58]},
+  {id:'PNB', name:'PNB',      div:'Industrial Air', maturity:'lightgreen', score:71, parts:18600, missing:8.4, dupes:1.4, bomErr:2100,  uc3:820, uc5:112, uc12:180, uc48:210, uc_oth:88,  attrs:[82,85,65,70,88,55,48]},
+  {id:'PNE', name:'PNE',      div:'Industrial Air', maturity:'lightgreen', score:68, parts:16200, missing:9.2, dupes:1.8, bomErr:2480,  uc3:960, uc5:134, uc12:210, uc48:240, uc_oth:102, attrs:[80,83,62,68,86,52,44]},
+  {id:'WUX', name:'WUX',      div:'Oil-Free Air',   maturity:'lightgreen', score:66, parts:14800, missing:10.1,dupes:2.1, bomErr:2850,  uc3:1050,uc5:155, uc12:240, uc48:265, uc_oth:115, attrs:[78,81,60,65,84,50,42]},
+  {id:'CJK', name:'CJK',      div:'Oil-Free Air',   maturity:'orange',     score:48, parts:12400, missing:18.6,dupes:3.4, bomErr:4200,  uc3:1840,uc5:280, uc12:420, uc48:380, uc_oth:180, attrs:[65,70,44,52,78,36,28]},
+  {id:'COX', name:'COX',      div:'Oil-Free Air',   maturity:'orange',     score:44, parts:10800, missing:21.2,dupes:4.1, bomErr:4800,  uc3:2100,uc5:320, uc12:480, uc48:420, uc_oth:200, attrs:[62,68,40,48,75,32,24]},
+  {id:'API', name:'API',      div:'Gas & Process',  maturity:'lightgreen', score:38, parts:42000, missing:24.8,dupes:5.2, bomErr:40000, uc3:4200,uc5:620, uc12:840, uc48:760, uc_oth:380, attrs:[58,64,36,44,72,28,20]},
+  {id:'APF', name:'APF',      div:'Gas & Process',  maturity:'lightgreen', score:52, parts:21000, missing:15.4,dupes:2.8, bomErr:6200,  uc3:1520,uc5:210, uc12:340, uc48:310, uc_oth:148, attrs:[70,74,52,58,80,44,36]},
+  {id:'MGS', name:'MGS',      div:'Medical Gas',    maturity:'darkgreen',  score:88, parts:11200, missing:3.1, dupes:0.4, bomErr:480,   uc3:310, uc5:28,  uc12:55,  uc48:85,  uc_oth:32,  attrs:[92,95,82,88,97,75,68]},
+  {id:'ATC', name:'Airtec',   div:'Airtec',         maturity:'lightgreen', score:62, parts:8200,  missing:12.8,dupes:1.6, bomErr:1840,  uc3:680, uc5:88,  uc12:140, uc48:155, uc_oth:68,  attrs:[74,78,56,62,82,48,38]},
+  {id:'STD', name:'STD parts',div:'CT Service',     maturity:'orange',     score:41, parts:58000, missing:22.4,dupes:6.8, bomErr:0,     uc3:3800,uc5:480, uc12:0,   uc48:520, uc_oth:280, attrs:[60,65,38,45,70,30,22]},
+];
+
+const ATTRS = ['EIN populated','R/S set','UOM valid','Weight > 0','ERP attrs','CAD ref','BOM qty > 0'];
+const SCOPE_LABELS = ['Active (GEMS scope)','15yr non-active','KIT scope','Legacy'];
+const SCOPE_VALS = [112840, 48200, 22400, 18600];
+
+let activeMaturity = 'all';
+let activeDivision = 'all';
+let selectedPC = null;
+let scoreChart, ucChart, sevChart, bomChart, trendChart;
+
+function matColor(m) { return MAT[m]; }
+function scoreClass(s) { return s>=80?'sp-good':s>=60?'sp-mid':'sp-bad'; }
+
+function getFiltered() {
+  return PCS.filter(pc => {
+    if(activeMaturity !== 'all' && pc.maturity !== activeMaturity) return false;
+    if(activeDivision !== 'all' && pc.div !== activeDivision) return false;
+    return true;
+  });
+}
+
+function renderKPIs() {
+  const pcs = getFiltered();
+  const totalParts = pcs.reduce((a,p)=>a+p.parts,0);
+  const avgScore = Math.round(pcs.reduce((a,p)=>a+p.score,0)/pcs.length);
+  const totalBomErr = pcs.reduce((a,p)=>a+p.bomErr,0);
+  const gemsReady = pcs.filter(p=>p.score>=80).length;
+  const totalDupes = pcs.reduce((a,p)=>a+Math.round(p.parts*p.dupes/100),0);
+  const totalMissing = pcs.reduce((a,p)=>a+Math.round(p.parts*p.missing/100),0);
+  const kpis = [
+    {lbl:'CT GEMS readiness',   val:avgScore+'%',                      cls:avgScore>=70?'good':'bad',  numcls:avgScore>=70?'good':'bad', trend:avgScore>=70?'↑ On track':'↓ Below 70% threshold', tcls:avgScore>=70?'up':'dn'},
+    {lbl:'Product companies',   val:pcs.length,                        cls:'',       numcls:'',    trend:gemsReady+' of '+pcs.length+' GEMS ready', tcls:''},
+    {lbl:'Total parts in scope',val:(totalParts/1000).toFixed(0)+'K', cls:'neutral', numcls:'',   trend:'Across 3DEXPERIENCE', tcls:''},
+    {lbl:'BOMs flagged not-OK', val:totalBomErr.toLocaleString(),      cls:'bad',    numcls:'bad', trend:'Blocks GEMS migration', tcls:'dn'},
+    {lbl:'Missing ERP attrs',   val:totalMissing.toLocaleString(),     cls:'warn',   numcls:'warn',trend:'UC3 — highest priority', tcls:'dn'},
+    {lbl:'Duplicate Lead EINs', val:totalDupes.toLocaleString(),       cls:'bad',    numcls:'bad', trend:'UC5 — blocks interface', tcls:'dn'},
+  ];
+  document.getElementById('kpiRow').innerHTML = kpis.map(k=>`
+    <div class="kpi-card ${k.cls}">
+      <div class="kpi-lbl">${k.lbl}</div>
+      <div class="kpi-val ${k.numcls}">${k.val}</div>
+      <div class="kpi-trend ${k.tcls}">${k.trend}</div>
+    </div>`).join('');
+}
+
+function renderTable() {
+  const pcs = getFiltered();
+  document.getElementById('pcTableBody').innerHTML = pcs.map(pc=>`
+    <tr class="${selectedPC===pc.id?'selected':''}" onclick="selectPC('${pc.id}')">
+      <td><div class="mat-dot" style="background:${matColor(pc.maturity)};"></div></td>
+      <td style="font-weight:500;">${pc.name}</td>
+      <td style="font-size:9px;color:#605E5C;">${pc.div}</td>
+      <td><span class="score-pill ${scoreClass(pc.score)}">${pc.score}%</span></td>
+      <td>${(pc.parts/1000).toFixed(1)}K</td>
+      <td style="color:${pc.missing>15?'#C42B1C':pc.missing>8?'#8A4500':'#107C10'};font-weight:500;">${pc.missing.toFixed(1)}%</td>
+      <td style="color:${pc.dupes>3?'#C42B1C':pc.dupes>1?'#8A4500':'#107C10'};font-weight:500;">${pc.dupes.toFixed(1)}%</td>
+      <td style="color:${pc.bomErr>5000?'#C42B1C':pc.bomErr>1000?'#8A4500':'#107C10'};font-weight:500;">${pc.bomErr.toLocaleString()}</td>
+      <td style="font-size:9px;font-weight:600;color:${matColor(pc.maturity)};">${pc.maturity==='darkgreen'?'GEMS':pc.maturity==='lightgreen'?'BPCS':'PLM only'}</td>
+    </tr>`).join('');
+}
+
+function renderAttrBars() {
+  const pcs = selectedPC ? PCS.filter(p=>p.id===selectedPC) : getFiltered();
+  const avgAttrs = ATTRS.map((_,i)=>Math.round(pcs.reduce((a,p)=>a+p.attrs[i],0)/pcs.length));
+  document.getElementById('attrBars').innerHTML = ATTRS.map((name,i)=>{
+    const v = avgAttrs[i];
+    const col = v>=85?'#107C10':v>=65?'#F5A800':'#C42B1C';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #F3F2F1;">
+      <span style="font-size:9px;color:#323130;width:100px;flex-shrink:0;">${name}</span>
+      <div style="flex:1;height:7px;background:#F3F2F1;border-radius:1px;overflow:hidden;"><div style="height:100%;width:${v}%;background:${col};border-radius:1px;"></div></div>
+      <span style="font-size:9px;font-weight:600;color:${col};width:26px;text-align:right;">${v}%</span>
+    </div>`;
+  }).join('');
+  document.getElementById('scopeCards').innerHTML = SCOPE_LABELS.map((lbl,i)=>`
+    <div class="detail-card">
+      <div class="detail-card-label">${lbl}</div>
+      <div class="detail-card-val">${(SCOPE_VALS[i]/1000).toFixed(0)}K</div>
+    </div>`).join('');
+}
+
+function renderUCGrid() {
+  const pcs = selectedPC ? PCS.filter(p=>p.id===selectedPC) : getFiltered();
+  const ucs = [
+    {name:'UC3: Missing ERP attrs',   col:'#C42B1C', val:pcs.reduce((a,p)=>a+p.uc3,0)},
+    {name:'UC5: Duplicate Lead EIN',  col:'#E08700', val:pcs.reduce((a,p)=>a+p.uc5,0)},
+    {name:'UC1/2: Recursive BOM',     col:'#C42B1C', val:pcs.reduce((a,p)=>a+p.uc12,0)},
+    {name:'UC4/8: UOM mismatch',      col:'#E08700', val:pcs.reduce((a,p)=>a+p.uc48,0)},
+    {name:'UC7: R/S vs EIN gap',      col:'#E08700', val:pcs.reduce((a,p)=>a+p.uc_oth,0)},
+    {name:'UC9: Weight missing',      col:'#0099CC', val:pcs.reduce((a,p)=>a+Math.round(p.parts*p.missing/100*0.3),0)},
+  ];
+  document.getElementById('ucGrid').innerHTML = ucs.map(u=>`
+    <div class="uc-row">
+      <div class="uc-sev" style="background:${u.col};"></div>
+      <span class="uc-name">${u.name}</span>
+      <span class="uc-count">${u.val.toLocaleString()}</span>
+    </div>`).join('');
+}
+
+function updateBanner() {
+  const banner = document.getElementById('pcBanner');
+  if(selectedPC) {
+    const pc = PCS.find(p=>p.id===selectedPC);
+    banner.style.display='flex';
+    document.getElementById('bannerName').textContent = pc.name + ' — ' + pc.div;
+    document.getElementById('bannerMeta').textContent = 'GEMS score: '+pc.score+'% · Parts: '+(pc.parts/1000).toFixed(1)+'K · BOMs flagged: '+pc.bomErr.toLocaleString()+' · ERP status: '+(pc.maturity==='darkgreen'?'GEMS':pc.maturity==='lightgreen'?'BPCS linked':'PLM only');
+  } else {
+    banner.style.display='none';
+  }
+}
+
+function buildCharts() {
+  const pcs = getFiltered();
+  const labels = pcs.map(p=>p.id);
+  const scores = pcs.map(p=>p.score);
+  const colors = scores.map(s=>s>=80?'#107C10':s>=60?'#F5A800':'#C42B1C');
+
+  if(scoreChart) scoreChart.destroy();
+  scoreChart = new Chart(document.getElementById('scoreChart').getContext('2d'),{
+    type:'bar',
+    data:{ labels, datasets:[{ data:scores, backgroundColor:colors, borderRadius:2, borderSkipped:false }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:9},color:'#605E5C',maxRotation:0} },
+        y:{ min:0, max:100, grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:9},color:'#605E5C',callback:v=>v+'%'} }
+      }
+    }
+  });
+
+  if(ucChart) ucChart.destroy();
+  ucChart = new Chart(document.getElementById('ucChart').getContext('2d'),{
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'UC3 Missing',  data:pcs.map(p=>p.uc3),     backgroundColor:'#C42B1C', stack:'s', borderRadius:2, borderSkipped:false},
+      {label:'UC5 Dupl EIN', data:pcs.map(p=>p.uc5),     backgroundColor:'#E08700', stack:'s'},
+      {label:'UC1/2 Recur',  data:pcs.map(p=>p.uc12),    backgroundColor:'#F2C811', stack:'s'},
+      {label:'UC4/8 UOM',    data:pcs.map(p=>p.uc48),    backgroundColor:'#0099CC', stack:'s'},
+      {label:'Other',        data:pcs.map(p=>p.uc_oth),  backgroundColor:'#6264A7', stack:'s'}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ stacked:true, grid:{display:false}, ticks:{font:{size:9},color:'#605E5C',maxRotation:0} },
+        y:{ stacked:true, grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:9},color:'#605E5C'} }
+      }
+    }
+  });
+
+  const sevData = [
+    pcs.reduce((a,p)=>a+p.uc3+p.uc5+p.uc12,0),
+    pcs.reduce((a,p)=>a+p.uc48+p.uc_oth,0),
+    pcs.reduce((a,p)=>a+Math.round(p.parts*p.missing/100*0.2),0)
+  ];
+  const sevTotal = sevData.reduce((a,b)=>a+b,0);
+  if(sevChart) sevChart.destroy();
+  sevChart = new Chart(document.getElementById('sevChart').getContext('2d'),{
+    type:'doughnut',
+    data:{ labels:['Critical','Warning','Info'],
+      datasets:[{data:sevData, backgroundColor:['#C42B1C','#E08700','#0099CC'], borderWidth:0, hoverOffset:2}]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{legend:{display:false}} }
+  });
+  document.getElementById('sevLegend').innerHTML = ['Critical','Warning','Info'].map((lbl,i)=>{
+    const col=['#C42B1C','#E08700','#0099CC'][i];
+    return `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
+      <div style="width:9px;height:9px;border-radius:1px;background:${col};flex-shrink:0;"></div>
+      <span style="flex:1;font-size:10px;">${lbl}</span>
+      <span style="font-size:10px;font-weight:600;">${Math.round(sevData[i]/sevTotal*100)}% (${sevData[i].toLocaleString()})</span>
+    </div>`;
+  }).join('');
+
+  if(bomChart) bomChart.destroy();
+  bomChart = new Chart(document.getElementById('bomChart').getContext('2d'),{
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'BOMs flagged not-OK', data:pcs.map(p=>p.bomErr),  backgroundColor:'#E08700', borderRadius:2, borderSkipped:false},
+      {label:'Parts in 3DX',        data:pcs.map(p=>p.parts),   backgroundColor:'#0099CC30', borderRadius:2, borderSkipped:false}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:9},color:'#605E5C',maxRotation:0} },
+        y:{ grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:9},color:'#605E5C', callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v} }
+      }
+    }
+  });
+
+  if(trendChart) trendChart.destroy();
+  trendChart = new Chart(document.getElementById('trendChart').getContext('2d'),{
+    type:'line',
+    data:{ labels:['W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12'],
+      datasets:[
+        {label:'CT overall',      data:[52,54,53,56,55,58,57,60,59,61,62,63], borderColor:'#0099CC', backgroundColor:'#0099CC18', borderWidth:2, pointRadius:2.5, fill:true, tension:0.4, pointBackgroundColor:'#0099CC'},
+        {label:'GEMS threshold',  data:[70,70,70,70,70,70,70,70,70,70,70,70], borderColor:'#C42B1C', borderWidth:1.5, borderDash:[4,3], pointRadius:0, fill:false}
+      ]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:9},color:'#605E5C'} },
+        y:{ min:40, max:85, grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:9},color:'#605E5C', callback:v=>v+'%'} }
+      }
+    }
+  });
+}
+
+function selectPC(id) {
+  selectedPC = selectedPC===id ? null : id;
+  renderTable(); updateBanner(); renderAttrBars(); renderUCGrid();
+  const pc = selectedPC ? PCS.find(p=>p.id===selectedPC) : null;
+  document.getElementById('ucPanelSub').textContent = pc ? pc.name : 'All PCs';
+}
+
+function clearSelection() { selectPC(null); }
+
+function filterMaturity(val, el) {
+  activeMaturity = val;
+  document.querySelectorAll('.pbi-toolbar .pbi-filter[onclick*="filterMaturity"]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  selectedPC = null; updateBanner();
+  renderKPIs(); renderTable(); renderAttrBars(); renderUCGrid(); buildCharts();
+}
+
+function filterDivision(val) {
+  activeDivision = val;
+  selectedPC = null; updateBanner();
+  renderKPIs(); renderTable(); renderAttrBars(); renderUCGrid(); buildCharts();
+}
+
+renderKPIs(); renderTable(); renderAttrBars(); renderUCGrid(); buildCharts();
+</script>
+</body>
+</html>
